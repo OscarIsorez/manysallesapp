@@ -7,6 +7,8 @@ import 'features/gym_tracking/presentation/bloc/gym/gym_event.dart';
 import 'features/gym_tracking/presentation/bloc/exercise/exercise_bloc.dart';
 import 'features/gym_tracking/presentation/bloc/exercise/exercise_event.dart';
 import 'features/gym_tracking/presentation/bloc/log/log_bloc.dart';
+import 'features/gym_tracking/presentation/bloc/session/session_bloc.dart';
+import 'features/gym_tracking/presentation/bloc/session/session_event.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +30,9 @@ class MyApp extends StatelessWidget {
           create: (_) => di.sl<ExerciseBloc>()..add(GetExercisesEvent()),
         ),
         BlocProvider<LogBloc>(create: (_) => di.sl<LogBloc>()),
+        BlocProvider<SessionBloc>(
+          create: (_) => di.sl<SessionBloc>()..add(GetSessionsEvent()),
+        ),
       ],
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,

@@ -23,6 +23,8 @@ class LogsLoaded extends LogState {
 
 class LogAddedSuccess extends LogState {}
 
+class LogDeletedSuccess extends LogState {}
+
 class DataExportedSuccess extends LogState {
   final String message;
 

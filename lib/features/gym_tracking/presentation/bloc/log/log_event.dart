@@ -45,6 +45,21 @@ class AddWeightLogEvent extends LogEvent {
   ];
 }
 
+class DeleteWeightLogEvent extends LogEvent {
+  final String logId;
+  final String gymId;
+  final String exerciseId;
+
+  const DeleteWeightLogEvent({
+    required this.logId,
+    required this.gymId,
+    required this.exerciseId,
+  });
+
+  @override
+  List<Object> get props => [logId, gymId, exerciseId];
+}
+
 class ExportDataEvent extends LogEvent {}
 
 class ImportDataEvent extends LogEvent {

@@ -10,17 +10,20 @@ import 'log_state.dart';
 class LogBloc extends Bloc<LogEvent, LogState> {
   final GetLogsForGymAndExercise getLogs;
   final AddWeightLog addWeightLog;
+  final DeleteWeightLog deleteWeightLog;
   final ExportData exportData;
   final ImportData importData;
 
   LogBloc({
     required this.getLogs,
     required this.addWeightLog,
+    required this.deleteWeightLog,
     required this.exportData,
     required this.importData,
   }) : super(LogInitial()) {
     on<GetLogsEvent>(_onGetLogs);
     on<AddWeightLogEvent>(_onAddWeightLog);
+    on<DeleteWeightLogEvent>(_onDeleteWeightLog);
     on<ExportDataEvent>(_onExportData);
     on<ImportDataEvent>(_onImportData);
   }
@@ -60,6 +63,23 @@ class LogBloc extends Bloc<LogEvent, LogState> {
       (failure) => emit(LogError(message: failure.message)),
       (_) {
         emit(LogAddedSuccess());
+        add(GetLogsEvent(gymId: event.gymId, exerciseId: event.exerciseId));
+      },
+    );
+  }
+
+  Future<void> _onDeleteWeightLog(
+    DeleteWeightLogEvent event,
+    Emitter<LogState> emit,
+  ) async {
+    emit(LogLoading());
+    final failureOrSuccess = await deleteWeightLog(
+      DeleteLogParams(logId: event.logId),
+    );
+    failureOrSuccess.fold(
+      (failure) => emit(LogError(message: failure.message)),
+      (_) {
+        emit(LogDeletedSuccess());
         add(GetLogsEvent(gymId: event.gymId, exerciseId: event.exerciseId));
       },
     );

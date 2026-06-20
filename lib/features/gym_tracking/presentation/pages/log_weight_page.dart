@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
+import '../../domain/entities/weight_log.dart';
 import '../bloc/log/log_bloc.dart';
 import '../bloc/log/log_event.dart';
 import '../bloc/log/log_state.dart';
@@ -102,102 +104,252 @@ class _LogWeightPageState extends State<LogWeightPage> {
     }
   }
 
+  Future<void> _confirmDeleteLog(WeightLog log) async {
+    final repsText = log.reps.join(', ');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          icon: Icon(Icons.delete_outline_rounded, color: colorScheme.error),
+          title: const Text('Delete this log?'),
+          content: Text(
+            'Remove ${log.weight} kg (${log.sets} sets: $repsText) from '
+            '${DateFormat.yMMMd().add_jm().format(log.date)}?\n\n'
+            'This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: colorScheme.error,
+                foregroundColor: colorScheme.onError,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && mounted) {
+      HapticFeedback.mediumImpact();
+      context.read<LogBloc>().add(
+        DeleteWeightLogEvent(
+          logId: log.id,
+          gymId: widget.gymId,
+          exerciseId: widget.exerciseId,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Log Workout')),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _weightController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'Weight (kg)',
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _weightController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: InputDecoration(
+                              labelText: 'Weight (kg)',
+                              filled: true,
+                              fillColor: colorScheme.surfaceContainerHighest,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: _setsController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'Sets',
+                              filled: true,
+                              fillColor: colorScheme.surfaceContainerHighest,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Reps per set',
+                      style: textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    ...List.generate(_repsControllers.length, (index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: TextField(
+                          controller: _repsControllers[index],
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Set ${index + 1} reps',
+                            filled: true,
+                            fillColor: colorScheme.surfaceContainerHighest,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Modify this value for EVERY gym'),
+                      value: _updateEveryGym,
+                      onChanged: (val) =>
+                          setState(() => _updateEveryGym = val ?? false),
+                    ),
+                    const SizedBox(height: 8),
+                    FilledButton.icon(
+                      onPressed: _submitLog,
+                      icon: const Icon(Icons.save_outlined, size: 18),
+                      label: const Text('Save Log'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Icon(Icons.history_rounded, color: colorScheme.primary),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: TextField(
-                      controller: _setsController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Sets'),
+                  Text(
+                    'History',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Reps per set',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              const SizedBox(height: 8),
-              ...List.generate(_repsControllers.length, (index) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: TextField(
-                    controller: _repsControllers[index],
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Set ${index + 1} reps',
-                    ),
-                  ),
-                );
-              }),
-              const SizedBox(height: 8),
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Modify this value for EVERY gym'),
-                value: _updateEveryGym,
-                onChanged: (val) =>
-                    setState(() => _updateEveryGym = val ?? false),
-              ),
-              ElevatedButton(
-                onPressed: _submitLog,
-                child: const Text('Save Log'),
-              ),
-              const Divider(height: 32),
-              const Text(
-                'History',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              BlocBuilder<LogBloc, LogState>(
+              const SizedBox(height: 12),
+              BlocConsumer<LogBloc, LogState>(
+                listener: (context, state) {
+                  if (state is LogDeletedSuccess) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        content: const Text('Log entry deleted'),
+                      ),
+                    );
+                  }
+                },
                 builder: (context, state) {
                   if (state is LogLoading) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
                   } else if (state is LogError) {
                     return Center(child: Text('Error: ${state.message}'));
                   } else if (state is LogsLoaded) {
                     if (state.logs.isEmpty) {
-                      return const Center(child: Text('No history available.'));
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.fitness_center_outlined,
+                              size: 48,
+                              color: colorScheme.outline,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No history yet',
+                              style: textTheme.bodyLarge?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
                     }
-                    return ListView.builder(
+                    return ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: state.logs.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 8),
                       itemBuilder: (context, index) {
                         final log = state.logs[index];
                         final repsText = log.reps.join(', ');
-                        return Card(
+                        return Material(
+                          color: colorScheme.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(16),
                           child: ListTile(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                             title: Text(
-                              '${log.weight} kg (${log.sets} sets: $repsText)',
+                              '${log.weight} kg',
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             subtitle: Text(
-                              DateFormat.yMMMd().add_jm().format(log.date),
+                              '${log.sets} sets · $repsText\n'
+                              '${DateFormat.yMMMd().add_jm().format(log.date)}',
+                            ),
+                            isThreeLine: true,
+                            trailing: IconButton(
+                              icon: Icon(
+                                Icons.delete_outline_rounded,
+                                color: colorScheme.error,
+                              ),
+                              tooltip: 'Delete log',
+                              onPressed: () => _confirmDeleteLog(log),
                             ),
                           ),
                         );

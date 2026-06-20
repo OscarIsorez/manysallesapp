@@ -7,9 +7,13 @@ import 'package:file_picker/file_picker.dart';
 import '../bloc/gym/gym_bloc.dart';
 import '../bloc/gym/gym_event.dart';
 import '../bloc/gym/gym_state.dart';
+import '../bloc/exercise/exercise_bloc.dart';
+import '../bloc/exercise/exercise_event.dart';
 import '../bloc/log/log_bloc.dart';
 import '../bloc/log/log_event.dart';
 import '../bloc/log/log_state.dart';
+import '../bloc/session/session_bloc.dart';
+import '../bloc/session/session_event.dart';
 
 class GymSelectionPage extends StatelessWidget {
   const GymSelectionPage({super.key});
@@ -62,6 +66,8 @@ class GymSelectionPage extends StatelessWidget {
                 );
               } else if (state is DataImportedSuccess) {
                 context.read<GymBloc>().add(GetGymsEvent());
+                context.read<ExerciseBloc>().add(GetExercisesEvent());
+                context.read<SessionBloc>().add(GetSessionsEvent());
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     behavior: SnackBarBehavior.floating,

@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../domain/entities/gym.dart';
 import '../../domain/entities/exercise.dart';
+import '../../domain/entities/exercise_session.dart';
 import '../../domain/entities/weight_log.dart';
 import '../../../../core/error/exceptions.dart';
 
@@ -15,6 +16,11 @@ abstract class GymTrackingLocalDataSource {
   Future<List<Exercise>> getExercises();
   Future<void> addExercise(Exercise exercise);
 
+  Future<List<ExerciseSession>> getSessions();
+  Future<void> addSession(ExerciseSession session);
+  Future<void> updateSession(ExerciseSession session);
+  Future<void> deleteSession(String sessionId);
+
   Future<List<WeightLog>> getLogsForGymAndExercise(
     String gymId,
     String exerciseId,
@@ -24,6 +30,7 @@ abstract class GymTrackingLocalDataSource {
     String exerciseId,
   );
   Future<void> addWeightLog(WeightLog log);
+  Future<void> deleteWeightLog(String logId);
 
   Future<String> exportData();
   Future<void> importData(Map<String, dynamic> data);
@@ -32,11 +39,13 @@ abstract class GymTrackingLocalDataSource {
 class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
   final Box<Gym> gymBox;
   final Box<Exercise> exerciseBox;
+  final Box<ExerciseSession> sessionBox;
   final Box<WeightLog> logBox;
 
   GymTrackingLocalDataSourceImpl({
     required this.gymBox,
     required this.exerciseBox,
+    required this.sessionBox,
     required this.logBox,
   });
 
@@ -58,6 +67,26 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
   @override
   Future<void> addExercise(Exercise exercise) async {
     await exerciseBox.put(exercise.id, exercise);
+  }
+
+  @override
+  Future<List<ExerciseSession>> getSessions() async {
+    return sessionBox.values.toList();
+  }
+
+  @override
+  Future<void> addSession(ExerciseSession session) async {
+    await sessionBox.put(session.id, session);
+  }
+
+  @override
+  Future<void> updateSession(ExerciseSession session) async {
+    await sessionBox.put(session.id, session);
+  }
+
+  @override
+  Future<void> deleteSession(String sessionId) async {
+    await sessionBox.delete(sessionId);
   }
 
   @override
@@ -90,6 +119,11 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
   }
 
   @override
+  Future<void> deleteWeightLog(String logId) async {
+    await logBox.delete(logId);
+  }
+
+  @override
   Future<String> exportData() async {
     try {
       final directory = await getDownloadsDirectory();
@@ -102,6 +136,15 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
         'gyms': gymBox.values.map((g) => {'id': g.id, 'name': g.name}).toList(),
         'exercises': exerciseBox.values
             .map((e) => {'id': e.id, 'name': e.name})
+            .toList(),
+        'sessions': sessionBox.values
+            .map(
+              (s) => {
+                'id': s.id,
+                'name': s.name,
+                'exerciseIds': s.exerciseIds,
+              },
+            )
             .toList(),
         'logs': logBox.values
             .map(
@@ -134,6 +177,16 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
     return Exercise(
       id: exercise['id'] as String,
       name: exercise['name'] as String,
+    );
+  }
+
+  ExerciseSession _parseSession(Map<String, dynamic> session) {
+    return ExerciseSession(
+      id: session['id'] as String,
+      name: session['name'] as String,
+      exerciseIds: (session['exerciseIds'] as List<dynamic>? ?? const [])
+          .whereType<String>()
+          .toList(),
     );
   }
 
@@ -173,6 +226,11 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
         .map((exercise) => _parseExercise(Map<String, dynamic>.from(exercise)))
         .toList();
 
+    final sessions = (data['sessions'] as List<dynamic>? ?? const [])
+        .whereType<Map>()
+        .map((session) => _parseSession(Map<String, dynamic>.from(session)))
+        .toList();
+
     final logs = (data['logs'] as List<dynamic>? ?? const [])
         .whereType<Map>()
         .map((log) => _parseLog(Map<String, dynamic>.from(log)))
@@ -180,6 +238,7 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
 
     await gymBox.clear();
     await exerciseBox.clear();
+    await sessionBox.clear();
     await logBox.clear();
 
     for (final gym in gyms) {
@@ -188,6 +247,10 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
 
     for (final exercise in exercises) {
       await exerciseBox.put(exercise.id, exercise);
+    }
+
+    for (final session in sessions) {
+      await sessionBox.put(session.id, session);
     }
 
     for (final log in logs) {
