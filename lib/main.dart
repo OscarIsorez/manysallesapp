@@ -30,9 +30,12 @@ class MyApp extends StatelessWidget {
         BlocProvider<LogBloc>(create: (_) => di.sl<LogBloc>()),
       ],
       child: MaterialApp.router(
+        debugShowCheckedModeBanner: false,
         title: 'Gym Tracker',
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 255, 211, 68)),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color.fromARGB(255, 255, 211, 68),
+          ),
           useMaterial3: true,
         ),
         routerConfig: appRouter,

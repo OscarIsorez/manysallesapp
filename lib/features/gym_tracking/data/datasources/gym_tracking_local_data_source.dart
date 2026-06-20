@@ -91,7 +91,10 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
   @override
   Future<String> exportData() async {
     try {
-      final directory = await getApplicationDocumentsDirectory();
+      final directory = await getDownloadsDirectory();
+      if (directory == null) {
+        throw const CacheException('Failed to get downloads directory');
+      }
       final file = File('${directory.path}/gym_tracker_export.json');
 
       final data = {
