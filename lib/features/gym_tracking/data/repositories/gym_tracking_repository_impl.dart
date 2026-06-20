@@ -1,4 +1,6 @@
 import 'package:fpdart/fpdart.dart';
+import 'dart:convert';
+import 'dart:io';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/error/exceptions.dart';
@@ -129,6 +131,23 @@ class GymTrackingRepositoryImpl implements GymTrackingRepository {
   Future<Either<Failure, void>> exportData() async {
     try {
       await localDataSource.exportData();
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> importData(String filePath) async {
+    try {
+      final jsonString = await File(filePath).readAsString();
+      final decoded = jsonDecode(jsonString);
+
+      if (decoded is! Map<String, dynamic>) {
+        return Left(const CacheFailure('Invalid import file format'));
+      }
+
+      await localDataSource.importData(decoded);
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));

@@ -22,7 +22,12 @@ Future<void> init() async {
   sl.registerFactory(() => GymBloc(getGyms: sl(), addGym: sl()));
   sl.registerFactory(() => ExerciseBloc(getExercises: sl(), addExercise: sl()));
   sl.registerFactory(
-    () => LogBloc(getLogs: sl(), addWeightLog: sl(), exportData: sl()),
+    () => LogBloc(
+      getLogs: sl(),
+      addWeightLog: sl(),
+      exportData: sl(),
+      importData: sl(),
+    ),
   );
 
   // Use Cases
@@ -33,6 +38,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetLogsForGymAndExercise(sl()));
   sl.registerLazySingleton(() => AddWeightLog(sl()));
   sl.registerLazySingleton(() => ExportData(sl()));
+  sl.registerLazySingleton(() => ImportData(sl()));
 
   // Repositories
   await Hive.initFlutter();

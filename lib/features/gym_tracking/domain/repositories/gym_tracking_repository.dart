@@ -23,4 +23,5 @@ abstract class GymTrackingRepository {
 
   Future<Either<Failure, void>> updateWeightForEveryGym(WeightLog baseLog);
   Future<Either<Failure, void>> exportData();
+  Future<Either<Failure, void>> importData(String filePath);
 }

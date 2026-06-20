@@ -47,6 +47,17 @@ class ExportData implements UseCase<void, NoParams> {
   }
 }
 
+class ImportData implements UseCase<void, ImportDataParams> {
+  final GymTrackingRepository repository;
+
+  ImportData(this.repository);
+
+  @override
+  Future<Either<Failure, void>> call(ImportDataParams params) async {
+    return await repository.importData(params.filePath);
+  }
+}
+
 class GetLogsParams extends Equatable {
   final String gymId;
   final String exerciseId;
@@ -65,4 +76,13 @@ class AddLogParams extends Equatable {
 
   @override
   List<Object> get props => [weightLog, updateEveryGym];
+}
+
+class ImportDataParams extends Equatable {
+  final String filePath;
+
+  const ImportDataParams({required this.filePath});
+
+  @override
+  List<Object> get props => [filePath];
 }

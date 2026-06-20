@@ -46,3 +46,12 @@ class AddWeightLogEvent extends LogEvent {
 }
 
 class ExportDataEvent extends LogEvent {}
+
+class ImportDataEvent extends LogEvent {
+  final String filePath;
+
+  const ImportDataEvent({required this.filePath});
+
+  @override
+  List<Object> get props => [filePath];
+}

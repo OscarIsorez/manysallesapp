@@ -26,6 +26,7 @@ abstract class GymTrackingLocalDataSource {
   Future<void> addWeightLog(WeightLog log);
 
   Future<String> exportData();
+  Future<void> importData(Map<String, dynamic> data);
 }
 
 class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
@@ -122,6 +123,75 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
       return file.path;
     } catch (e) {
       throw const CacheException('Failed to export data');
+    }
+  }
+
+  Gym _parseGym(Map<String, dynamic> gym) {
+    return Gym(id: gym['id'] as String, name: gym['name'] as String);
+  }
+
+  Exercise _parseExercise(Map<String, dynamic> exercise) {
+    return Exercise(
+      id: exercise['id'] as String,
+      name: exercise['name'] as String,
+    );
+  }
+
+  List<int> _parseReps(dynamic repsValue) {
+    if (repsValue is List) {
+      return repsValue.whereType<num>().map((rep) => rep.toInt()).toList();
+    }
+
+    if (repsValue is int) {
+      return [repsValue];
+    }
+
+    return const [];
+  }
+
+  WeightLog _parseLog(Map<String, dynamic> log) {
+    return WeightLog(
+      id: log['id'] as String,
+      gymId: log['gymId'] as String,
+      exerciseId: log['exerciseId'] as String,
+      weight: (log['weight'] as num).toDouble(),
+      sets: log['sets'] as int,
+      reps: _parseReps(log['reps']),
+      date: DateTime.parse(log['date'] as String),
+    );
+  }
+
+  @override
+  Future<void> importData(Map<String, dynamic> data) async {
+    final gyms = (data['gyms'] as List<dynamic>? ?? const [])
+        .whereType<Map>()
+        .map((gym) => _parseGym(Map<String, dynamic>.from(gym)))
+        .toList();
+
+    final exercises = (data['exercises'] as List<dynamic>? ?? const [])
+        .whereType<Map>()
+        .map((exercise) => _parseExercise(Map<String, dynamic>.from(exercise)))
+        .toList();
+
+    final logs = (data['logs'] as List<dynamic>? ?? const [])
+        .whereType<Map>()
+        .map((log) => _parseLog(Map<String, dynamic>.from(log)))
+        .toList();
+
+    await gymBox.clear();
+    await exerciseBox.clear();
+    await logBox.clear();
+
+    for (final gym in gyms) {
+      await gymBox.put(gym.id, gym);
+    }
+
+    for (final exercise in exercises) {
+      await exerciseBox.put(exercise.id, exercise);
+    }
+
+    for (final log in logs) {
+      await logBox.put(log.id, log);
     }
   }
 }

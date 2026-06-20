@@ -11,15 +11,18 @@ class LogBloc extends Bloc<LogEvent, LogState> {
   final GetLogsForGymAndExercise getLogs;
   final AddWeightLog addWeightLog;
   final ExportData exportData;
+  final ImportData importData;
 
   LogBloc({
     required this.getLogs,
     required this.addWeightLog,
     required this.exportData,
+    required this.importData,
   }) : super(LogInitial()) {
     on<GetLogsEvent>(_onGetLogs);
     on<AddWeightLogEvent>(_onAddWeightLog);
     on<ExportDataEvent>(_onExportData);
+    on<ImportDataEvent>(_onImportData);
   }
 
   Future<void> _onGetLogs(GetLogsEvent event, Emitter<LogState> emit) async {
@@ -72,6 +75,22 @@ class LogBloc extends Bloc<LogEvent, LogState> {
       (failure) => emit(LogError(message: failure.message)),
       (_) => emit(
         const DataExportedSuccess(message: 'Data successfully exported!'),
+      ),
+    );
+  }
+
+  Future<void> _onImportData(
+    ImportDataEvent event,
+    Emitter<LogState> emit,
+  ) async {
+    emit(LogLoading());
+    final failureOrSuccess = await importData(
+      ImportDataParams(filePath: event.filePath),
+    );
+    failureOrSuccess.fold(
+      (failure) => emit(LogError(message: failure.message)),
+      (_) => emit(
+        const DataImportedSuccess(message: 'Data successfully imported!'),
       ),
     );
   }

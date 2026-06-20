@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
 
 import '../bloc/gym/gym_bloc.dart';
 import '../bloc/gym/gym_event.dart';
@@ -59,16 +60,67 @@ class GymSelectionPage extends StatelessWidget {
                     ),
                   ),
                 );
+              } else if (state is DataImportedSuccess) {
+                context.read<GymBloc>().add(GetGymsEvent());
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    backgroundColor: Colors.blue.shade600,
+                    content: Row(
+                      children: [
+                        const Icon(
+                          Icons.file_upload_outlined,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(child: Text(state.message)),
+                      ],
+                    ),
+                  ),
+                );
               }
             },
             builder: (context, state) {
-              return IconButton(
-                icon: const Icon(Icons.file_download_outlined),
-                tooltip: 'Export JSON',
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  context.read<LogBloc>().add(ExportDataEvent());
-                },
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.file_upload_outlined),
+                    tooltip: 'Import JSON',
+                    onPressed: () async {
+                      HapticFeedback.lightImpact();
+                      final result = await FilePicker.platform.pickFiles(
+                        type: FileType.custom,
+                        allowedExtensions: ['json'],
+                        withData: false,
+                      );
+
+                      final filePath = result?.files.single.path;
+                      if (filePath == null) {
+                        return;
+                      }
+
+                      if (!context.mounted) {
+                        return;
+                      }
+
+                      context.read<LogBloc>().add(
+                        ImportDataEvent(filePath: filePath),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.file_download_outlined),
+                    tooltip: 'Export JSON',
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      context.read<LogBloc>().add(ExportDataEvent());
+                    },
+                  ),
+                ],
               );
             },
           ),

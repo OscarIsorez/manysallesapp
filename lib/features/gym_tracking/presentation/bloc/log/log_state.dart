@@ -32,6 +32,15 @@ class DataExportedSuccess extends LogState {
   List<Object> get props => [message];
 }
 
+class DataImportedSuccess extends LogState {
+  final String message;
+
+  const DataImportedSuccess({required this.message});
+
+  @override
+  List<Object> get props => [message];
+}
+
 class LogError extends LogState {
   final String message;
 
