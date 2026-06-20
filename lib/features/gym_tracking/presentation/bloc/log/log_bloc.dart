@@ -35,7 +35,12 @@ class LogBloc extends Bloc<LogEvent, LogState> {
     );
     failureOrLogs.fold(
       (failure) => emit(LogError(message: failure.message)),
-      (logs) => emit(LogsLoaded(logs: logs)),
+      (logs) => emit(
+        LogsLoaded(
+          logs: logs,
+          latestLog: logs.firstOrNull ?? WeightLog.empty(),
+        ),
+      ),
     );
   }
 

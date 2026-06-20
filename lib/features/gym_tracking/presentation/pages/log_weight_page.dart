@@ -29,6 +29,7 @@ class _LogWeightPageState extends State<LogWeightPage> {
     TextEditingController(),
   ];
   bool _updateEveryGym = false;
+  bool _prefilled = false;
 
   @override
   void initState() {
@@ -102,6 +103,19 @@ class _LogWeightPageState extends State<LogWeightPage> {
       }
       setState(() => _updateEveryGym = false);
     }
+  }
+
+  void _prefillFromLog(WeightLog log) {
+    _weightController.text = log.weight.toString();
+    _setsController.text = log.sets.toString();
+
+    _ensureRepControllers(log.sets);
+
+    for (int i = 0; i < log.reps.length; i++) {
+      _repsControllers[i].text = log.reps[i].toString();
+    }
+
+    setState(() {});
   }
 
   Future<void> _confirmDeleteLog(WeightLog log) async {
@@ -284,6 +298,13 @@ class _LogWeightPageState extends State<LogWeightPage> {
                         content: const Text('Log entry deleted'),
                       ),
                     );
+                  }
+
+                  if (state is LogsLoaded &&
+                      state.latestLog != null &&
+                      !_prefilled) {
+                    _prefillFromLog(state.latestLog!);
+                    _prefilled = true;
                   }
                 },
                 builder: (context, state) {
