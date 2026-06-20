@@ -16,7 +16,7 @@ class WeightLog extends Equatable {
   @HiveField(4)
   final int sets;
   @HiveField(5)
-  final int reps;
+  final List<int> reps;
   @HiveField(6)
   final DateTime date;
 
@@ -39,7 +39,7 @@ class WeightLog extends Equatable {
     String? exerciseId,
     double? weight,
     int? sets,
-    int? reps,
+    List<int>? reps,
     DateTime? date,
   }) {
     return WeightLog(

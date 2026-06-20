@@ -22,7 +22,7 @@ class AddWeightLogEvent extends LogEvent {
   final String exerciseId;
   final double weight;
   final int sets;
-  final int reps;
+  final List<int> reps;
   final bool updateEveryGym;
 
   const AddWeightLogEvent({

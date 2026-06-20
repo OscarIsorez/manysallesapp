@@ -67,7 +67,7 @@ class LogBloc extends Bloc<LogEvent, LogState> {
     Emitter<LogState> emit,
   ) async {
     emit(LogLoading());
-    final failureOrSuccess = await exportData( NoParams());
+    final failureOrSuccess = await exportData(NoParams());
     failureOrSuccess.fold(
       (failure) => emit(LogError(message: failure.message)),
       (_) => emit(

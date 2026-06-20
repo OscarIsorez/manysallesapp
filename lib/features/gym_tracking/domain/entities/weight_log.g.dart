@@ -10,6 +10,18 @@ class WeightLogAdapter extends TypeAdapter<WeightLog> {
   @override
   final int typeId = 2;
 
+  List<int> _readReps(dynamic value) {
+    if (value is List) {
+      return value.whereType<num>().map((rep) => rep.toInt()).toList();
+    }
+
+    if (value is int) {
+      return [value];
+    }
+
+    return const [];
+  }
+
   @override
   WeightLog read(BinaryReader reader) {
     final numOfFields = reader.readByte();
@@ -22,7 +34,7 @@ class WeightLogAdapter extends TypeAdapter<WeightLog> {
       exerciseId: fields[2] as String,
       weight: fields[3] as double,
       sets: fields[4] as int,
-      reps: fields[5] as int,
+      reps: _readReps(fields[5]),
       date: fields[6] as DateTime,
     );
   }
