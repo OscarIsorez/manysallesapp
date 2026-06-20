@@ -38,7 +38,8 @@ class SessionBloc extends Bloc<SessionEvent, SessionState> {
     failureOrSessions.fold(
       (failure) => emit(SessionError(message: failure.message)),
       (sessions) {
-        final stillValid = previousSelection != null &&
+        final stillValid =
+            previousSelection != null &&
             sessions.any((session) => session.id == previousSelection);
         emit(
           SessionLoaded(
@@ -55,26 +56,31 @@ class SessionBloc extends Bloc<SessionEvent, SessionState> {
     Emitter<SessionState> emit,
   ) async {
     emit(SessionLoading());
+
     final newSession = ExerciseSession(
       id: const Uuid().v4(),
       name: event.sessionName,
       exerciseIds: event.exerciseIds,
     );
-    final failureOrSuccess = await addSession(SessionParams(session: newSession));
-    failureOrSuccess.fold(
+
+    final result = await addSession(SessionParams(session: newSession));
+
+    if (result.isLeft()) {
+      emit(
+        SessionError(
+          message: result.fold((failure) => failure.message, (_) => ''),
+        ),
+      );
+      return;
+    }
+
+    final sessionsResult = await getSessions(NoParams());
+
+    sessionsResult.fold(
       (failure) => emit(SessionError(message: failure.message)),
-      (_) async {
-        final failureOrSessions = await getSessions(NoParams());
-        failureOrSessions.fold(
-          (failure) => emit(SessionError(message: failure.message)),
-          (sessions) => emit(
-            SessionLoaded(
-              sessions: sessions,
-              selectedSessionId: newSession.id,
-            ),
-          ),
-        );
-      },
+      (sessions) => emit(
+        SessionLoaded(sessions: sessions, selectedSessionId: newSession.id),
+      ),
     );
   }
 
