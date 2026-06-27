@@ -11,6 +11,7 @@ class LogBloc extends Bloc<LogEvent, LogState> {
   final GetLogsForGymAndExercise getLogs;
   final AddWeightLog addWeightLog;
   final DeleteWeightLog deleteWeightLog;
+  final UpdateWeightLog updateWeightLog;
   final ExportData exportData;
   final ImportData importData;
 
@@ -18,12 +19,14 @@ class LogBloc extends Bloc<LogEvent, LogState> {
     required this.getLogs,
     required this.addWeightLog,
     required this.deleteWeightLog,
+    required this.updateWeightLog,
     required this.exportData,
     required this.importData,
   }) : super(LogInitial()) {
     on<GetLogsEvent>(_onGetLogs);
     on<AddWeightLogEvent>(_onAddWeightLog);
     on<DeleteWeightLogEvent>(_onDeleteWeightLog);
+    on<UpdateWeightLogEvent>(_onUpdateWeightLog);
     on<ExportDataEvent>(_onExportData);
     on<ImportDataEvent>(_onImportData);
   }
@@ -85,6 +88,21 @@ class LogBloc extends Bloc<LogEvent, LogState> {
       (failure) => emit(LogError(message: failure.message)),
       (_) {
         emit(LogDeletedSuccess());
+        add(GetLogsEvent(gymId: event.gymId, exerciseId: event.exerciseId));
+      },
+    );
+  }
+
+  Future<void> _onUpdateWeightLog(
+    UpdateWeightLogEvent event,
+    Emitter<LogState> emit,
+  ) async {
+    emit(LogLoading());
+    final failureOrSuccess = await updateWeightLog(event.weightLog);
+    failureOrSuccess.fold(
+      (failure) => emit(LogError(message: failure.message)),
+      (_) {
+        emit(LogUpdatedSuccess());
         add(GetLogsEvent(gymId: event.gymId, exerciseId: event.exerciseId));
       },
     );

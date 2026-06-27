@@ -10,11 +10,17 @@ import 'exercise_state.dart';
 class ExerciseBloc extends Bloc<ExerciseEvent, ExerciseState> {
   final GetExercises getExercises;
   final AddExercise addExercise;
+  final DeleteExercise deleteExercise;
 
-  ExerciseBloc({required this.getExercises, required this.addExercise})
-    : super(ExerciseInitial()) {
+  ExerciseBloc({
+    required this.getExercises,
+    required this.addExercise,
+    required this.deleteExercise,
+  }) : super(ExerciseInitial()) {
     on<GetExercisesEvent>(_onGetExercises);
     on<AddExerciseEvent>(_onAddExercise);
+    on<DeleteExerciseEvent>(_onDeleteExercise);
+    on<UpdateExerciseEvent>(_onUpdateExercise);
   }
 
   Future<void> _onGetExercises(
@@ -45,6 +51,36 @@ class ExerciseBloc extends Bloc<ExerciseEvent, ExerciseState> {
       (failure) => emit(ExerciseError(message: failure.message)),
       (_) {
         emit(ExerciseAddedSuccess());
+        add(GetExercisesEvent());
+      },
+    );
+  }
+
+  Future<void> _onDeleteExercise(
+    DeleteExerciseEvent event,
+    Emitter<ExerciseState> emit,
+  ) async {
+    emit(ExerciseLoading());
+    final failureOrSuccess = await deleteExercise(event.exerciseId);
+    failureOrSuccess.fold(
+      (failure) => emit(ExerciseError(message: failure.message)),
+      (_) {
+        add(GetExercisesEvent());
+      },
+    );
+  }
+
+  Future<void> _onUpdateExercise(
+    UpdateExerciseEvent event,
+    Emitter<ExerciseState> emit,
+  ) async {
+    emit(ExerciseLoading());
+    final failureOrSuccess = await addExercise(
+      ExerciseParams(exercise: event.exercise),
+    );
+    failureOrSuccess.fold(
+      (failure) => emit(ExerciseError(message: failure.message)),
+      (_) {
         add(GetExercisesEvent());
       },
     );

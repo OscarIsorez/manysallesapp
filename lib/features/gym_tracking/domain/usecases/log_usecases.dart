@@ -106,3 +106,14 @@ class DeleteLogParams extends Equatable {
   @override
   List<Object> get props => [logId];
 }
+
+class UpdateWeightLog implements UseCase<void, WeightLog> {
+  final GymTrackingRepository repository;
+
+  UpdateWeightLog(this.repository);
+
+  @override
+  Future<Either<Failure, void>> call(WeightLog log) async {
+    return await repository.updateWeightLog(log);
+  }
+}

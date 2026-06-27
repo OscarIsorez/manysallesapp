@@ -23,12 +23,19 @@ final sl = GetIt.instance;
 Future<void> init() async {
   // Blocs
   sl.registerFactory(() => GymBloc(getGyms: sl(), addGym: sl()));
-  sl.registerFactory(() => ExerciseBloc(getExercises: sl(), addExercise: sl()));
+  sl.registerFactory(
+    () => ExerciseBloc(
+      getExercises: sl(),
+      addExercise: sl(),
+      deleteExercise: sl(),
+    ),
+  );
   sl.registerFactory(
     () => LogBloc(
       getLogs: sl(),
       addWeightLog: sl(),
       deleteWeightLog: sl(),
+      updateWeightLog: sl(),
       exportData: sl(),
       importData: sl(),
     ),
@@ -47,9 +54,11 @@ Future<void> init() async {
   sl.registerLazySingleton(() => AddGym(sl()));
   sl.registerLazySingleton(() => GetExercises(sl()));
   sl.registerLazySingleton(() => AddExercise(sl()));
+  sl.registerLazySingleton(() => DeleteExercise(sl()));
   sl.registerLazySingleton(() => GetLogsForGymAndExercise(sl()));
   sl.registerLazySingleton(() => AddWeightLog(sl()));
   sl.registerLazySingleton(() => DeleteWeightLog(sl()));
+  sl.registerLazySingleton(() => UpdateWeightLog(sl()));
   sl.registerLazySingleton(() => ExportData(sl()));
   sl.registerLazySingleton(() => ImportData(sl()));
   sl.registerLazySingleton(() => GetSessions(sl()));

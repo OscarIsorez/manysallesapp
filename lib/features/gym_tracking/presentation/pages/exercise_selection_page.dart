@@ -116,6 +116,47 @@ class _ExerciseSelectionPageState extends State<ExerciseSelectionPage> {
     }
   }
 
+  Future<void> _confirmDeleteExercise(Exercise exercise) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          icon: Icon(Icons.delete_outline_rounded, color: colorScheme.error),
+          title: const Text('Delete exercise?'),
+          content: Text(
+            'Are you sure you want to delete "${exercise.name}"?\n\n'
+            'This will also delete ALL logged history and remove it from any workout sessions. This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(
+                backgroundColor: colorScheme.error,
+                foregroundColor: colorScheme.onError,
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && mounted) {
+      HapticFeedback.mediumImpact();
+      context.read<ExerciseBloc>().add(
+        DeleteExerciseEvent(exerciseId: exercise.id),
+      );
+    }
+  }
+
   List<Exercise> _orderedExercises(
     List<Exercise> exercises,
     ExerciseSession? selectedSession,
@@ -165,217 +206,230 @@ class _ExerciseSelectionPageState extends State<ExerciseSelectionPage> {
         builder: (context, exerciseState) {
           return BlocBuilder<SessionBloc, SessionState>(
             builder: (context, sessionState) {
+              if (exerciseState is ExerciseLoading ||
+                  sessionState is SessionLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          if (exerciseState is ExerciseLoading ||
-              sessionState is SessionLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+              if (exerciseState is ExerciseError) {
+                return Center(child: Text('Error: ${exerciseState.message}'));
+              }
 
-          if (exerciseState is ExerciseError) {
-            return Center(child: Text('Error: ${exerciseState.message}'));
-          }
+              if (exerciseState is! ExerciseLoaded) {
+                return const Center(child: Text('Initializing...'));
+              }
 
-          if (exerciseState is! ExerciseLoaded) {
-            return const Center(child: Text('Initializing...'));
-          }
+              final sessions = sessionState is SessionLoaded
+                  ? sessionState.sessions
+                  : <ExerciseSession>[];
+              final selectedSession = sessionState is SessionLoaded
+                  ? sessionState.selectedSession
+                  : null;
+              final selectedSessionId = sessionState is SessionLoaded
+                  ? sessionState.selectedSessionId
+                  : null;
 
-          final sessions = sessionState is SessionLoaded
-              ? sessionState.sessions
-              : <ExerciseSession>[];
-          final selectedSession = sessionState is SessionLoaded
-              ? sessionState.selectedSession
-              : null;
-          final selectedSessionId = sessionState is SessionLoaded
-              ? sessionState.selectedSessionId
-              : null;
+              if (exerciseState.exercises.isEmpty) {
+                return _EmptyExercisesView(onAdd: _showAddExerciseDialog);
+              }
 
-          if (exerciseState.exercises.isEmpty) {
-            return _EmptyExercisesView(onAdd: _showAddExerciseDialog);
-          }
+              final orderedExercises = _orderedExercises(
+                exerciseState.exercises,
+                selectedSession,
+              );
+              final sessionExerciseIds =
+                  selectedSession?.exerciseIds.toSet() ?? <String>{};
 
-          final orderedExercises = _orderedExercises(
-            exerciseState.exercises,
-            selectedSession,
-          );
-          final sessionExerciseIds =
-              selectedSession?.exerciseIds.toSet() ?? <String>{};
-
-          return CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Workout sessions',
-                        style: textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _SessionChip(
-                              label: 'All',
-                              selected: selectedSessionId == null,
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                context.read<SessionBloc>().add(
-                                  const SelectSessionEvent(sessionId: null),
-                                );
-                              },
+              return CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Workout sessions',
+                            style: textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.onSurfaceVariant,
                             ),
-                            ...sessions.map((session) {
-                              return Padding(
-                                padding: const EdgeInsets.only(left: 8),
-                                child: _SessionChip(
-                                  label: session.name,
-                                  selected: selectedSessionId == session.id,
+                          ),
+                          const SizedBox(height: 10),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                _SessionChip(
+                                  label: 'All',
+                                  selected: selectedSessionId == null,
                                   onTap: () {
                                     HapticFeedback.selectionClick();
                                     context.read<SessionBloc>().add(
-                                      SelectSessionEvent(sessionId: session.id),
+                                      const SelectSessionEvent(sessionId: null),
                                     );
                                   },
-                                  onLongPress: () =>
-                                      _confirmDeleteSession(session),
                                 ),
-                              );
-                            }),
-                            Padding(
-                              padding: const EdgeInsets.only(left: 8),
-                              child: ActionChip(
-                                avatar: Icon(
-                                  Icons.add_rounded,
-                                  size: 18,
-                                  color: colorScheme.primary,
+                                ...sessions.map((session) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(left: 8),
+                                    child: _SessionChip(
+                                      label: session.name,
+                                      selected: selectedSessionId == session.id,
+                                      onTap: () {
+                                        HapticFeedback.selectionClick();
+                                        context.read<SessionBloc>().add(
+                                          SelectSessionEvent(
+                                            sessionId: session.id,
+                                          ),
+                                        );
+                                      },
+                                      onLongPress: () =>
+                                          _confirmDeleteSession(session),
+                                    ),
+                                  );
+                                }),
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8),
+                                  child: ActionChip(
+                                    avatar: Icon(
+                                      Icons.add_rounded,
+                                      size: 18,
+                                      color: colorScheme.primary,
+                                    ),
+                                    label: const Text('New'),
+                                    onPressed: () => _showManageSessionDialog(),
+                                  ),
                                 ),
-                                label: const Text('New'),
-                                onPressed: () => _showManageSessionDialog(),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (selectedSession != null)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.star_rounded,
-                            color: colorScheme.onPrimaryContainer,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              '${selectedSession.name} · '
-                              '${sessionExerciseIds.length} exercises',
-                              style: textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onPrimaryContainer,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.edit_outlined,
-                              color: colorScheme.onPrimaryContainer,
-                            ),
-                            tooltip: 'Edit session',
-                            onPressed: () => _showManageSessionDialog(
-                              existingSession: selectedSession,
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
-                sliver: SliverList.separated(
-                  itemCount: orderedExercises.length,
-                  separatorBuilder: (_, index) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final exercise = orderedExercises[index];
-                    final isInSession =
-                        sessionExerciseIds.contains(exercise.id);
-                    final showSessionHeader = selectedSession != null &&
-                        isInSession &&
-                        (index == 0 ||
-                            !sessionExerciseIds.contains(
-                              orderedExercises[index - 1].id,
-                            ));
-                    final showOtherHeader = selectedSession != null &&
-                        !isInSession &&
-                        (index == 0 ||
-                            sessionExerciseIds.contains(
-                              orderedExercises[index - 1].id,
-                            ));
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (showSessionHeader)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Text(
-                              'In this session',
-                              style: textTheme.labelLarge?.copyWith(
-                                color: colorScheme.primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                  if (selectedSession != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
                           ),
-                        if (showOtherHeader)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8, bottom: 8),
-                            child: Text(
-                              'Other exercises',
-                              style: textTheme.labelLarge?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                        _ExerciseCard(
-                          name: exercise.name,
-                          highlighted: isInSession && selectedSession != null,
-                          onTap: () {
-                            HapticFeedback.selectionClick();
-                            context.push(
-                              '/gym/${widget.gymId}/exercises/${exercise.id}/log',
-                            );
-                          },
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.star_rounded,
+                                color: colorScheme.onPrimaryContainer,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  '${selectedSession.name} · '
+                                  '${sessionExerciseIds.length} exercises',
+                                  style: textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onPrimaryContainer,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  Icons.edit_outlined,
+                                  color: colorScheme.onPrimaryContainer,
+                                ),
+                                tooltip: 'Edit session',
+                                onPressed: () => _showManageSessionDialog(
+                                  existingSession: selectedSession,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
+                      ),
+                    ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+                    sliver: SliverList.separated(
+                      itemCount: orderedExercises.length,
+                      separatorBuilder: (_, index) =>
+                          const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final exercise = orderedExercises[index];
+                        final isInSession = sessionExerciseIds.contains(
+                          exercise.id,
+                        );
+                        final showSessionHeader =
+                            selectedSession != null &&
+                            isInSession &&
+                            (index == 0 ||
+                                !sessionExerciseIds.contains(
+                                  orderedExercises[index - 1].id,
+                                ));
+                        final showOtherHeader =
+                            selectedSession != null &&
+                            !isInSession &&
+                            (index == 0 ||
+                                sessionExerciseIds.contains(
+                                  orderedExercises[index - 1].id,
+                                ));
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (showSessionHeader)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text(
+                                  'In this session',
+                                  style: textTheme.labelLarge?.copyWith(
+                                    color: colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            if (showOtherHeader)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 8,
+                                  bottom: 8,
+                                ),
+                                child: Text(
+                                  'Other exercises',
+                                  style: textTheme.labelLarge?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            _ExerciseCard(
+                              name: exercise.name,
+                              highlighted:
+                                  isInSession && selectedSession != null,
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                context.push(
+                                  '/gym/${widget.gymId}/exercises/${exercise.id}/log',
+                                );
+                              },
+                              onLongPress: () {
+                                HapticFeedback.lightImpact();
+                                _confirmDeleteExercise(exercise);
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
             },
           );
         },
@@ -488,11 +542,13 @@ class _ExerciseCard extends StatefulWidget {
   final String name;
   final bool highlighted;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   const _ExerciseCard({
     required this.name,
     required this.highlighted,
     required this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -519,6 +575,7 @@ class _ExerciseCardState extends State<_ExerciseCard> {
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
           onTap: widget.onTap,
+          onLongPress: widget.onLongPress,
           onTapDown: (_) => setState(() => _pressed = true),
           onTapCancel: () => setState(() => _pressed = false),
           onTapUp: (_) => setState(() => _pressed = false),
@@ -526,10 +583,7 @@ class _ExerciseCardState extends State<_ExerciseCard> {
             decoration: widget.highlighted
                 ? BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: colorScheme.primary,
-                      width: 2,
-                    ),
+                    border: Border.all(color: colorScheme.primary, width: 2),
                   )
                 : null,
             padding: const EdgeInsets.all(16),
@@ -698,10 +752,7 @@ class _ManageSessionDialog extends StatefulWidget {
   final List<Exercise> exercises;
   final ExerciseSession? existingSession;
 
-  const _ManageSessionDialog({
-    required this.exercises,
-    this.existingSession,
-  });
+  const _ManageSessionDialog({required this.exercises, this.existingSession});
 
   @override
   State<_ManageSessionDialog> createState() => _ManageSessionDialogState();
@@ -719,13 +770,15 @@ class _ManageSessionDialogState extends State<_ManageSessionDialog> {
       text: widget.existingSession?.name ?? '',
     );
     _selectedExerciseIds = widget.existingSession?.exerciseIds.toSet() ?? {};
-    _canSubmit = _nameController.text.trim().isNotEmpty &&
+    _canSubmit =
+        _nameController.text.trim().isNotEmpty &&
         _selectedExerciseIds.isNotEmpty;
     _nameController.addListener(_updateCanSubmit);
   }
 
   void _updateCanSubmit() {
-    final canSubmit = _nameController.text.trim().isNotEmpty &&
+    final canSubmit =
+        _nameController.text.trim().isNotEmpty &&
         _selectedExerciseIds.isNotEmpty;
     if (canSubmit != _canSubmit) {
       setState(() => _canSubmit = canSubmit);
@@ -812,9 +865,9 @@ class _ManageSessionDialogState extends State<_ManageSessionDialog> {
               const SizedBox(height: 16),
               Text(
                 'Select exercises',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               Flexible(
@@ -823,9 +876,7 @@ class _ManageSessionDialogState extends State<_ManageSessionDialog> {
                   itemCount: widget.exercises.length,
                   itemBuilder: (context, index) {
                     final exercise = widget.exercises[index];
-                    final selected = _selectedExerciseIds.contains(
-                      exercise.id,
-                    );
+                    final selected = _selectedExerciseIds.contains(exercise.id);
                     return CheckboxListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text(exercise.name),

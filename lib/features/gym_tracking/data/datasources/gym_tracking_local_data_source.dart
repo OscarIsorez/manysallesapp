@@ -15,6 +15,7 @@ abstract class GymTrackingLocalDataSource {
 
   Future<List<Exercise>> getExercises();
   Future<void> addExercise(Exercise exercise);
+  Future<void> deleteExercise(String exerciseId);
 
   Future<List<ExerciseSession>> getSessions();
   Future<void> addSession(ExerciseSession session);
@@ -30,6 +31,7 @@ abstract class GymTrackingLocalDataSource {
     String exerciseId,
   );
   Future<void> addWeightLog(WeightLog log);
+  Future<void> updateWeightLog(WeightLog log);
   Future<void> deleteWeightLog(String logId);
 
   Future<String> exportData();
@@ -67,6 +69,30 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
   @override
   Future<void> addExercise(Exercise exercise) async {
     await exerciseBox.put(exercise.id, exercise);
+  }
+
+  @override
+  Future<void> deleteExercise(String exerciseId) async {
+    await exerciseBox.delete(exerciseId);
+    
+    // Cascading delete for logs associated with this exercise
+    final logsToDelete = logBox.values.where((log) => log.exerciseId == exerciseId).toList();
+    for (final log in logsToDelete) {
+      await logBox.delete(log.id);
+    }
+
+    // Cascading clean up for sessions containing this exercise ID
+    final sessions = sessionBox.values.toList();
+    for (final session in sessions) {
+      if (session.exerciseIds.contains(exerciseId)) {
+        final updatedIds = List<String>.from(session.exerciseIds)..remove(exerciseId);
+        await sessionBox.put(session.id, ExerciseSession(
+          id: session.id,
+          name: session.name,
+          exerciseIds: updatedIds,
+        ));
+      }
+    }
   }
 
   @override
@@ -115,6 +141,11 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
 
   @override
   Future<void> addWeightLog(WeightLog log) async {
+    await logBox.put(log.id, log);
+  }
+
+  @override
+  Future<void> updateWeightLog(WeightLog log) async {
     await logBox.put(log.id, log);
   }
 

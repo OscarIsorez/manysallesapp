@@ -11,6 +11,7 @@ abstract class GymTrackingRepository {
 
   Future<Either<Failure, List<Exercise>>> getExercises();
   Future<Either<Failure, void>> addExercise(Exercise exercise);
+  Future<Either<Failure, void>> deleteExercise(String exerciseId);
 
   Future<Either<Failure, List<ExerciseSession>>> getSessions();
   Future<Either<Failure, void>> addSession(ExerciseSession session);
@@ -26,6 +27,7 @@ abstract class GymTrackingRepository {
     String exerciseId,
   );
   Future<Either<Failure, void>> addWeightLog(WeightLog log);
+  Future<Either<Failure, void>> updateWeightLog(WeightLog log);
   Future<Either<Failure, void>> deleteWeightLog(String logId);
 
   Future<Either<Failure, void>> updateWeightForEveryGym(WeightLog baseLog);

@@ -60,6 +60,16 @@ class GymTrackingRepositoryImpl implements GymTrackingRepository {
   }
 
   @override
+  Future<Either<Failure, void>> deleteExercise(String exerciseId) async {
+    try {
+      await localDataSource.deleteExercise(exerciseId);
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<ExerciseSession>>> getSessions() async {
     try {
       final sessions = await localDataSource.getSessions();
@@ -135,6 +145,16 @@ class GymTrackingRepositoryImpl implements GymTrackingRepository {
   Future<Either<Failure, void>> addWeightLog(WeightLog log) async {
     try {
       await localDataSource.addWeightLog(log);
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateWeightLog(WeightLog log) async {
+    try {
+      await localDataSource.updateWeightLog(log);
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
