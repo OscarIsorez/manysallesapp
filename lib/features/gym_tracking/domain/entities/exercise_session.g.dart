@@ -1,50 +1,38 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'weight_log.dart';
+part of 'exercise_session.dart';
 
 // **************************************************************************
 // TypeAdapterGenerator
 // **************************************************************************
 
-class WeightLogAdapter extends TypeAdapter<WeightLog> {
+class ExerciseSessionAdapter extends TypeAdapter<ExerciseSession> {
   @override
-  final int typeId = 2;
+  final int typeId = 3;
 
   @override
-  WeightLog read(BinaryReader reader) {
+  ExerciseSession read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return WeightLog(
+    return ExerciseSession(
       id: fields[0] as String,
-      gymId: fields[1] as String,
-      exerciseId: fields[2] as String,
-      weight: fields[3] as double,
-      sets: fields[4] as int,
-      reps: (fields[5] as List).cast<int>(),
-      date: fields[6] as DateTime,
+      name: fields[1] as String,
+      exerciseIds: (fields[2] as List).cast<String>(),
     );
   }
 
   @override
-  void write(BinaryWriter writer, WeightLog obj) {
+  void write(BinaryWriter writer, ExerciseSession obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(3)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
-      ..write(obj.gymId)
+      ..write(obj.name)
       ..writeByte(2)
-      ..write(obj.exerciseId)
-      ..writeByte(3)
-      ..write(obj.weight)
-      ..writeByte(4)
-      ..write(obj.sets)
-      ..writeByte(5)
-      ..write(obj.reps)
-      ..writeByte(6)
-      ..write(obj.date);
+      ..write(obj.exerciseIds);
   }
 
   @override
@@ -53,7 +41,7 @@ class WeightLogAdapter extends TypeAdapter<WeightLog> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is WeightLogAdapter &&
+      other is ExerciseSessionAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

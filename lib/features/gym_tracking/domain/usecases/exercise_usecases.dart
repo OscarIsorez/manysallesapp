@@ -36,3 +36,14 @@ class ExerciseParams extends Equatable {
   @override
   List<Object> get props => [exercise];
 }
+
+class DeleteExercise implements UseCase<void, String> {
+  final GymTrackingRepository repository;
+
+  DeleteExercise(this.repository);
+
+  @override
+  Future<Either<Failure, void>> call(String exerciseId) async {
+    return await repository.deleteExercise(exerciseId);
+  }
+}

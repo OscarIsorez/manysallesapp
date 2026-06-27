@@ -36,6 +36,17 @@ class AddWeightLog implements UseCase<void, AddLogParams> {
   }
 }
 
+class DeleteWeightLog implements UseCase<void, DeleteLogParams> {
+  final GymTrackingRepository repository;
+
+  DeleteWeightLog(this.repository);
+
+  @override
+  Future<Either<Failure, void>> call(DeleteLogParams params) async {
+    return await repository.deleteWeightLog(params.logId);
+  }
+}
+
 class ExportData implements UseCase<void, NoParams> {
   final GymTrackingRepository repository;
 
@@ -85,4 +96,24 @@ class ImportDataParams extends Equatable {
 
   @override
   List<Object> get props => [filePath];
+}
+
+class DeleteLogParams extends Equatable {
+  final String logId;
+
+  const DeleteLogParams({required this.logId});
+
+  @override
+  List<Object> get props => [logId];
+}
+
+class UpdateWeightLog implements UseCase<void, WeightLog> {
+  final GymTrackingRepository repository;
+
+  UpdateWeightLog(this.repository);
+
+  @override
+  Future<Either<Failure, void>> call(WeightLog log) async {
+    return await repository.updateWeightLog(log);
+  }
 }

@@ -5,28 +5,47 @@ import '../features/gym_tracking/data/datasources/gym_tracking_local_data_source
 import '../features/gym_tracking/data/repositories/gym_tracking_repository_impl.dart';
 import '../features/gym_tracking/domain/entities/gym.dart';
 import '../features/gym_tracking/domain/entities/exercise.dart';
+import '../features/gym_tracking/domain/entities/exercise_session.dart';
 import '../features/gym_tracking/domain/entities/weight_log.dart';
 import '../features/gym_tracking/domain/repositories/gym_tracking_repository.dart';
 
 import '../features/gym_tracking/domain/usecases/gym_usecases.dart';
 import '../features/gym_tracking/domain/usecases/exercise_usecases.dart';
 import '../features/gym_tracking/domain/usecases/log_usecases.dart';
+import '../features/gym_tracking/domain/usecases/session_usecases.dart';
 import '../features/gym_tracking/presentation/bloc/gym/gym_bloc.dart';
 import '../features/gym_tracking/presentation/bloc/exercise/exercise_bloc.dart';
 import '../features/gym_tracking/presentation/bloc/log/log_bloc.dart';
+import '../features/gym_tracking/presentation/bloc/session/session_bloc.dart';
 
 final sl = GetIt.instance;
 
 Future<void> init() async {
   // Blocs
   sl.registerFactory(() => GymBloc(getGyms: sl(), addGym: sl()));
-  sl.registerFactory(() => ExerciseBloc(getExercises: sl(), addExercise: sl()));
+  sl.registerFactory(
+    () => ExerciseBloc(
+      getExercises: sl(),
+      addExercise: sl(),
+      deleteExercise: sl(),
+    ),
+  );
   sl.registerFactory(
     () => LogBloc(
       getLogs: sl(),
       addWeightLog: sl(),
+      deleteWeightLog: sl(),
+      updateWeightLog: sl(),
       exportData: sl(),
       importData: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => SessionBloc(
+      getSessions: sl(),
+      addSession: sl(),
+      updateSession: sl(),
+      deleteSession: sl(),
     ),
   );
 
@@ -35,10 +54,17 @@ Future<void> init() async {
   sl.registerLazySingleton(() => AddGym(sl()));
   sl.registerLazySingleton(() => GetExercises(sl()));
   sl.registerLazySingleton(() => AddExercise(sl()));
+  sl.registerLazySingleton(() => DeleteExercise(sl()));
   sl.registerLazySingleton(() => GetLogsForGymAndExercise(sl()));
   sl.registerLazySingleton(() => AddWeightLog(sl()));
+  sl.registerLazySingleton(() => DeleteWeightLog(sl()));
+  sl.registerLazySingleton(() => UpdateWeightLog(sl()));
   sl.registerLazySingleton(() => ExportData(sl()));
   sl.registerLazySingleton(() => ImportData(sl()));
+  sl.registerLazySingleton(() => GetSessions(sl()));
+  sl.registerLazySingleton(() => AddSession(sl()));
+  sl.registerLazySingleton(() => UpdateSession(sl()));
+  sl.registerLazySingleton(() => DeleteSession(sl()));
 
   // Repositories
   await Hive.initFlutter();
@@ -46,9 +72,11 @@ Future<void> init() async {
   Hive.registerAdapter(GymAdapter());
   Hive.registerAdapter(ExerciseAdapter());
   Hive.registerAdapter(WeightLogAdapter());
+  Hive.registerAdapter(ExerciseSessionAdapter());
 
   final gymBox = await Hive.openBox<Gym>('gyms');
   final exerciseBox = await Hive.openBox<Exercise>('exercises');
+  final sessionBox = await Hive.openBox<ExerciseSession>('sessions');
   final logBox = await Hive.openBox<WeightLog>('logs');
 
   // Repositories
@@ -61,6 +89,7 @@ Future<void> init() async {
     () => GymTrackingLocalDataSourceImpl(
       gymBox: gymBox,
       exerciseBox: exerciseBox,
+      sessionBox: sessionBox,
       logBox: logBox,
     ),
   );

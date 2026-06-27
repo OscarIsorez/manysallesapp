@@ -52,4 +52,16 @@ class WeightLog extends Equatable {
       date: date ?? this.date,
     );
   }
+
+  factory WeightLog.empty() {
+    return WeightLog(
+      id: '',
+      gymId: '',
+      exerciseId: '',
+      weight: 0,
+      sets: 0,
+      reps: const [],
+      date: DateTime.now(),
+    );
+  }
 }

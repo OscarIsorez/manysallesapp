@@ -14,14 +14,19 @@ class LogLoading extends LogState {}
 
 class LogsLoaded extends LogState {
   final List<WeightLog> logs;
+  final WeightLog latestLog;
 
-  const LogsLoaded({required this.logs});
+  const LogsLoaded({required this.logs, required this.latestLog});
 
   @override
-  List<Object> get props => [logs];
+  List<Object> get props => [logs, latestLog];
 }
 
 class LogAddedSuccess extends LogState {}
+
+class LogDeletedSuccess extends LogState {}
+
+class LogUpdatedSuccess extends LogState {}
 
 class DataExportedSuccess extends LogState {
   final String message;

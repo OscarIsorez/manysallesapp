@@ -7,6 +7,7 @@ import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/entities/gym.dart';
 import '../../domain/entities/exercise.dart';
+import '../../domain/entities/exercise_session.dart';
 import '../../domain/entities/weight_log.dart';
 import '../../domain/repositories/gym_tracking_repository.dart';
 import '../datasources/gym_tracking_local_data_source.dart';
@@ -59,6 +60,56 @@ class GymTrackingRepositoryImpl implements GymTrackingRepository {
   }
 
   @override
+  Future<Either<Failure, void>> deleteExercise(String exerciseId) async {
+    try {
+      await localDataSource.deleteExercise(exerciseId);
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ExerciseSession>>> getSessions() async {
+    try {
+      final sessions = await localDataSource.getSessions();
+      return Right(sessions);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> addSession(ExerciseSession session) async {
+    try {
+      await localDataSource.addSession(session);
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateSession(ExerciseSession session) async {
+    try {
+      await localDataSource.updateSession(session);
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteSession(String sessionId) async {
+    try {
+      await localDataSource.deleteSession(sessionId);
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<WeightLog>>> getLogsForGymAndExercise(
     String gymId,
     String exerciseId,
@@ -94,6 +145,26 @@ class GymTrackingRepositoryImpl implements GymTrackingRepository {
   Future<Either<Failure, void>> addWeightLog(WeightLog log) async {
     try {
       await localDataSource.addWeightLog(log);
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateWeightLog(WeightLog log) async {
+    try {
+      await localDataSource.updateWeightLog(log);
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteWeightLog(String logId) async {
+    try {
+      await localDataSource.deleteWeightLog(logId);
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
