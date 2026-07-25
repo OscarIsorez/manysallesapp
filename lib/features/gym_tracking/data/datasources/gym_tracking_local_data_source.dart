@@ -1,12 +1,13 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:hive/hive.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../domain/entities/gym.dart';
 import '../../domain/entities/exercise.dart';
 import '../../domain/entities/exercise_session.dart';
 import '../../domain/entities/weight_log.dart';
+import '../../domain/entities/daily_aggregate.dart';
 import '../../../../core/error/exceptions.dart';
 
 abstract class GymTrackingLocalDataSource {
@@ -36,6 +37,10 @@ abstract class GymTrackingLocalDataSource {
 
   Future<String> exportData();
   Future<void> importData(Map<String, dynamic> data);
+  Future<List<DailyAggregate>> getDailyAggregatedLogs(
+    String gymId,
+    String exerciseId,
+  );
 }
 
 class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
@@ -74,9 +79,11 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
   @override
   Future<void> deleteExercise(String exerciseId) async {
     await exerciseBox.delete(exerciseId);
-    
+
     // Cascading delete for logs associated with this exercise
-    final logsToDelete = logBox.values.where((log) => log.exerciseId == exerciseId).toList();
+    final logsToDelete = logBox.values
+        .where((log) => log.exerciseId == exerciseId)
+        .toList();
     for (final log in logsToDelete) {
       await logBox.delete(log.id);
     }
@@ -85,12 +92,16 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
     final sessions = sessionBox.values.toList();
     for (final session in sessions) {
       if (session.exerciseIds.contains(exerciseId)) {
-        final updatedIds = List<String>.from(session.exerciseIds)..remove(exerciseId);
-        await sessionBox.put(session.id, ExerciseSession(
-          id: session.id,
-          name: session.name,
-          exerciseIds: updatedIds,
-        ));
+        final updatedIds = List<String>.from(session.exerciseIds)
+          ..remove(exerciseId);
+        await sessionBox.put(
+          session.id,
+          ExerciseSession(
+            id: session.id,
+            name: session.name,
+            exerciseIds: updatedIds,
+          ),
+        );
       }
     }
   }
@@ -156,13 +167,9 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
 
   @override
   Future<String> exportData() async {
-    try {
-      final directory = await getDownloadsDirectory();
-      if (directory == null) {
-        throw const CacheException('Failed to get downloads directory');
-      }
-      final file = File('${directory.path}/gym_tracker_export.json');
+  
 
+    try {
       final data = {
         'gyms': gymBox.values.map((g) => {'id': g.id, 'name': g.name}).toList(),
         'exercises': exerciseBox.values
@@ -170,11 +177,7 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
             .toList(),
         'sessions': sessionBox.values
             .map(
-              (s) => {
-                'id': s.id,
-                'name': s.name,
-                'exerciseIds': s.exerciseIds,
-              },
+              (s) => {'id': s.id, 'name': s.name, 'exerciseIds': s.exerciseIds},
             )
             .toList(),
         'logs': logBox.values
@@ -193,8 +196,22 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
       };
 
       final jsonString = jsonEncode(data);
-      await file.writeAsString(jsonString);
-      return file.path;
+
+      final savedPath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save gym tracker export',
+        fileName: 'gym_tracker_export.json',
+        type: FileType.custom,
+        allowedExtensions: const ['json'],
+        bytes: Uint8List.fromList(utf8.encode(jsonString)),
+      );
+
+      if (savedPath == null) {
+        throw const CacheException('Export cancelled');
+      }
+
+      return savedPath;
+    } on CacheException {
+      rethrow;
     } catch (e) {
       throw const CacheException('Failed to export data');
     }
@@ -287,5 +304,49 @@ class GymTrackingLocalDataSourceImpl implements GymTrackingLocalDataSource {
     for (final log in logs) {
       await logBox.put(log.id, log);
     }
+  }
+
+  @override
+  Future<List<DailyAggregate>> getDailyAggregatedLogs(
+    String gymId,
+    String exerciseId,
+  ) async {
+    final logs = logBox.values
+        .where((log) => log.gymId == gymId && log.exerciseId == exerciseId)
+        .toList();
+
+    // Group by date (year-month-day)
+    final Map<String, List<WeightLog>> grouped = {};
+    for (var log in logs) {
+      final key = '${log.date.year}-${log.date.month}-${log.date.day}';
+      grouped.putIfAbsent(key, () => []).add(log);
+    }
+
+    final List<DailyAggregate> aggregates = [];
+    grouped.forEach((key, dayLogs) {
+      double maxWeight = 0;
+      int totalSets = 0;
+      int totalReps = 0;
+      DateTime date = dayLogs.first.date;
+
+      for (var l in dayLogs) {
+        if (l.weight > maxWeight) maxWeight = l.weight;
+        totalSets += l.sets;
+        totalReps += l.reps.fold<int>(0, (prev, r) => prev + r);
+        if (l.date.isBefore(date)) date = l.date;
+      }
+
+      aggregates.add(
+        DailyAggregate(
+          date: DateTime(date.year, date.month, date.day),
+          maxWeight: maxWeight,
+          totalSets: totalSets,
+          totalReps: totalReps,
+        ),
+      );
+    });
+
+    aggregates.sort((a, b) => a.date.compareTo(b.date));
+    return aggregates;
   }
 }

@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:manysallesapp/features/gym_tracking/domain/entities/exercise_session.dart';
+import 'package:manysallesappCrimson/features/gym_tracking/domain/entities/exercise_session.dart';
 
 abstract class SessionState extends Equatable {
   const SessionState();
@@ -16,10 +16,7 @@ class SessionLoaded extends SessionState {
   final List<ExerciseSession> sessions;
   final String? selectedSessionId;
 
-  const SessionLoaded({
-    required this.sessions,
-    this.selectedSessionId,
-  });
+  const SessionLoaded({required this.sessions, this.selectedSessionId});
 
   SessionLoaded copyWith({
     List<ExerciseSession>? sessions,

@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:manysallesapp/features/gym_tracking/domain/entities/exercise_session.dart';
+import 'package:manysallesappCrimson/features/gym_tracking/domain/entities/exercise_session.dart';
 
 abstract class SessionEvent extends Equatable {
   const SessionEvent();
@@ -14,10 +14,7 @@ class AddSessionEvent extends SessionEvent {
   final String sessionName;
   final List<String> exerciseIds;
 
-  const AddSessionEvent({
-    required this.sessionName,
-    required this.exerciseIds,
-  });
+  const AddSessionEvent({required this.sessionName, required this.exerciseIds});
 
   @override
   List<Object> get props => [sessionName, exerciseIds];

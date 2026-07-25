@@ -418,6 +418,11 @@ class _ExerciseSelectionPageState extends State<ExerciseSelectionPage> {
                                   '/gym/${widget.gymId}/exercises/${exercise.id}/log',
                                 );
                               },
+                              onProgress: () {
+                                context.push(
+                                  '/gym/${widget.gymId}/exercises/${exercise.id}/progress',
+                                );
+                              },
                               onLongPress: () {
                                 HapticFeedback.lightImpact();
                                 _confirmDeleteExercise(exercise);
@@ -451,6 +456,7 @@ class _SessionChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+  // no onProgress here; keep session chip focused on selection actions
 
   const _SessionChip({
     required this.label,
@@ -543,11 +549,13 @@ class _ExerciseCard extends StatefulWidget {
   final bool highlighted;
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
+  final VoidCallback? onProgress;
 
   const _ExerciseCard({
     required this.name,
     required this.highlighted,
     required this.onTap,
+    this.onProgress,
     this.onLongPress,
   });
 
@@ -628,7 +636,21 @@ class _ExerciseCardState extends State<_ExerciseCard> {
                       color: colorScheme.primary,
                     ),
                   ),
-                Icon(Icons.chevron_right_rounded, color: colorScheme.outline),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.show_chart_outlined),
+                      color: colorScheme.primary,
+                      onPressed: widget.onProgress,
+                      tooltip: 'View progress',
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: colorScheme.outline,
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

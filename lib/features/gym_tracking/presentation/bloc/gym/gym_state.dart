@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:manysallesapp/features/gym_tracking/domain/entities/gym.dart';
+import 'package:manysallesappCrimson/features/gym_tracking/domain/entities/gym.dart';
 
 abstract class GymState extends Equatable {
   const GymState();

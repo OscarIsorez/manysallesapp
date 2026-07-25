@@ -47,13 +47,13 @@ class DeleteWeightLog implements UseCase<void, DeleteLogParams> {
   }
 }
 
-class ExportData implements UseCase<void, NoParams> {
+class ExportData implements UseCase<String, NoParams> {
   final GymTrackingRepository repository;
 
   ExportData(this.repository);
 
   @override
-  Future<Either<Failure, void>> call(NoParams params) async {
+  Future<Either<Failure, String>> call(NoParams params) async {
     return await repository.exportData();
   }
 }

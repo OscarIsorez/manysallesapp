@@ -20,9 +20,9 @@ class WeightLogAdapter extends TypeAdapter<WeightLog> {
       id: fields[0] as String,
       gymId: fields[1] as String,
       exerciseId: fields[2] as String,
-      weight: fields[3] as double,
-      sets: fields[4] as int,
-      reps: (fields[5] as List).cast<int>(),
+      weight: _parseDouble(fields[3]),
+      sets: _parseInt(fields[4]),
+      reps: _parseReps(fields[5]),
       date: fields[6] as DateTime,
     );
   }
@@ -56,4 +56,36 @@ class WeightLogAdapter extends TypeAdapter<WeightLog> {
       other is WeightLogAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
+}
+
+double _parseDouble(dynamic v) {
+  if (v == null) return 0.0;
+  if (v is double) return v;
+  if (v is int) return v.toDouble();
+  if (v is String) return double.tryParse(v) ?? 0.0;
+  return 0.0;
+}
+
+int _parseInt(dynamic v) {
+  if (v == null) return 0;
+  if (v is int) return v;
+  if (v is double) return v.toInt();
+  if (v is String) return int.tryParse(v) ?? 0;
+  return 0;
+}
+
+List<int> _parseReps(dynamic repsValue) {
+  if (repsValue == null) return [];
+  if (repsValue is List) {
+    return repsValue.map<int>((e) {
+      if (e is int) return e;
+      if (e is double) return e.toInt();
+      if (e is String) return int.tryParse(e) ?? 0;
+      return 0;
+    }).toList();
+  }
+  if (repsValue is int) return [repsValue];
+  if (repsValue is double) return [repsValue.toInt()];
+  if (repsValue is String) return [int.tryParse(repsValue) ?? 0];
+  return [];
 }

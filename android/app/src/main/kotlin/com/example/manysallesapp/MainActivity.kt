@@ -1,4 +1,4 @@
-package com.example.manysallesapp
+package com.example.manysallesappCrimson
 
 import io.flutter.embedding.android.FlutterActivity
 

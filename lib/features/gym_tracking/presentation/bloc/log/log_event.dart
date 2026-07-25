@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:manysallesapp/features/gym_tracking/domain/entities/weight_log.dart';
+import 'package:manysallesappCrimson/features/gym_tracking/domain/entities/weight_log.dart';
 
 abstract class LogEvent extends Equatable {
   const LogEvent();

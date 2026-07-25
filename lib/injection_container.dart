@@ -12,6 +12,7 @@ import '../features/gym_tracking/domain/repositories/gym_tracking_repository.dar
 import '../features/gym_tracking/domain/usecases/gym_usecases.dart';
 import '../features/gym_tracking/domain/usecases/exercise_usecases.dart';
 import '../features/gym_tracking/domain/usecases/log_usecases.dart';
+import '../features/gym_tracking/domain/usecases/progress_usecases.dart';
 import '../features/gym_tracking/domain/usecases/session_usecases.dart';
 import '../features/gym_tracking/presentation/bloc/gym/gym_bloc.dart';
 import '../features/gym_tracking/presentation/bloc/exercise/exercise_bloc.dart';
@@ -56,6 +57,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => AddExercise(sl()));
   sl.registerLazySingleton(() => DeleteExercise(sl()));
   sl.registerLazySingleton(() => GetLogsForGymAndExercise(sl()));
+  sl.registerLazySingleton(() => GetDailyAggregatedLogs(sl()));
   sl.registerLazySingleton(() => AddWeightLog(sl()));
   sl.registerLazySingleton(() => DeleteWeightLog(sl()));
   sl.registerLazySingleton(() => UpdateWeightLog(sl()));

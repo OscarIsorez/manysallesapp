@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/gym_tracking/presentation/pages/exercise_selection_page.dart';
 import '../../features/gym_tracking/presentation/pages/gym_selection_page.dart';
 import '../../features/gym_tracking/presentation/pages/log_weight_page.dart';
+import '../../features/gym_tracking/presentation/pages/progress_chart_page.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -20,6 +21,14 @@ final GoRouter appRouter = GoRouter(
         final gymId = state.pathParameters['gymId']!;
         final exerciseId = state.pathParameters['exerciseId']!;
         return LogWeightPage(gymId: gymId, exerciseId: exerciseId);
+      },
+    ),
+    GoRoute(
+      path: '/gym/:gymId/exercises/:exerciseId/progress',
+      builder: (context, state) {
+        final gymId = state.pathParameters['gymId']!;
+        final exerciseId = state.pathParameters['exerciseId']!;
+        return ProgressChartPage(gymId: gymId, exerciseId: exerciseId);
       },
     ),
   ],

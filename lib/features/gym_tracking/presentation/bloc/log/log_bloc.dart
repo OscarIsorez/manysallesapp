@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:manysallesapp/core/usecases/usecase.dart';
-import 'package:manysallesapp/features/gym_tracking/domain/entities/weight_log.dart';
-import 'package:manysallesapp/features/gym_tracking/domain/usecases/log_usecases.dart';
+import 'package:manysallesappCrimson/core/usecases/usecase.dart';
+import 'package:manysallesappCrimson/features/gym_tracking/domain/entities/weight_log.dart';
+import 'package:manysallesappCrimson/features/gym_tracking/domain/usecases/log_usecases.dart';
 import 'package:uuid/uuid.dart';
 
 import 'log_event.dart';
@@ -113,12 +113,11 @@ class LogBloc extends Bloc<LogEvent, LogState> {
     Emitter<LogState> emit,
   ) async {
     emit(LogLoading());
-    final failureOrSuccess = await exportData(NoParams());
-    failureOrSuccess.fold(
+    final failureOrPath = await exportData(NoParams());
+    failureOrPath.fold(
       (failure) => emit(LogError(message: failure.message)),
-      (_) => emit(
-        const DataExportedSuccess(message: 'Data successfully exported!'),
-      ),
+      (exportedPath) =>
+          emit(DataExportedSuccess(message: 'Data exported to $exportedPath')),
     );
   }
 

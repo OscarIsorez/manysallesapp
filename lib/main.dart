@@ -39,7 +39,7 @@ class MyApp extends StatelessWidget {
         title: 'Gym Tracker',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color.fromARGB(255, 255, 211, 68),
+            seedColor: const Color.fromARGB(255, 173, 23, 71),
           ),
           useMaterial3: true,
         ),

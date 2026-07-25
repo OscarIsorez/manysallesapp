@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -27,18 +28,29 @@ class LogWeightPage extends StatefulWidget {
 }
 
 class _LogWeightPageState extends State<LogWeightPage> {
-  final TextEditingController _weightController = TextEditingController();
-  final TextEditingController _setsController = TextEditingController();
+  static const double _weightStep = 0.25;
+  static const double _maxWeight = 300;
+  static int _weightItemCount =
+      ((_maxWeight - _weightStep) / _weightStep).round() + 1;
+  static const int _minSets = 1;
+  static const int _maxSets = 20;
+  static const int _setItemCount = _maxSets - _minSets + 1;
+
   final List<TextEditingController> _repsControllers = [
     TextEditingController(),
   ];
+  double _weight = 0.25;
+  int _sets = 1;
+  late final FixedExtentScrollController _weightPickerController;
+  late final FixedExtentScrollController _setsPickerController;
   bool _updateEveryGym = false;
   bool _prefilled = false;
 
   @override
   void initState() {
     super.initState();
-    _setsController.addListener(_syncRepsFields);
+    _weightPickerController = FixedExtentScrollController(initialItem: 0);
+    _setsPickerController = FixedExtentScrollController(initialItem: 0);
     context.read<LogBloc>().add(
       GetLogsEvent(gymId: widget.gymId, exerciseId: widget.exerciseId),
     );
@@ -46,26 +58,12 @@ class _LogWeightPageState extends State<LogWeightPage> {
 
   @override
   void dispose() {
-    _weightController.dispose();
-    _setsController.removeListener(_syncRepsFields);
-    _setsController.dispose();
+    _weightPickerController.dispose();
+    _setsPickerController.dispose();
     for (final controller in _repsControllers) {
       controller.dispose();
     }
     super.dispose();
-  }
-
-  void _syncRepsFields() {
-    final targetSets = int.tryParse(_setsController.text);
-    if (targetSets == null ||
-        targetSets < 1 ||
-        targetSets == _repsControllers.length) {
-      return;
-    }
-
-    setState(() {
-      _ensureRepControllers(targetSets);
-    });
   }
 
   void _ensureRepControllers(int targetSets) {
@@ -78,30 +76,40 @@ class _LogWeightPageState extends State<LogWeightPage> {
     }
   }
 
+  void _changeRepValue(int index, int delta) {
+    final currentValue = int.tryParse(_repsControllers[index].text) ?? 1;
+    final updatedValue = (currentValue + delta).clamp(1, 999);
+    setState(() {
+      _repsControllers[index].text = updatedValue.toString();
+    });
+    HapticFeedback.selectionClick();
+  }
+
   void _submitLog() {
-    final weight = double.tryParse(_weightController.text) ?? 0.0;
-    final parsedSets = int.tryParse(_setsController.text) ?? 1;
-    final sets = parsedSets < 1 ? 1 : parsedSets;
-    _ensureRepControllers(sets);
+    _ensureRepControllers(_sets);
     final reps = List<int>.generate(
-      sets,
-      (index) => int.tryParse(_repsControllers[index].text) ?? 1,
+      _sets,
+      (index) => int.tryParse(_repsControllers[index].text) ?? 3,
     );
 
-    if (weight > 0) {
+    if (_weight > 0) {
       context.read<LogBloc>().add(
         AddWeightLogEvent(
           gymId: widget.gymId,
           exerciseId: widget.exerciseId,
-          weight: weight,
-          sets: sets,
+          weight: _weight,
+          sets: _sets,
           reps: reps,
           updateEveryGym: _updateEveryGym,
         ),
       );
 
-      _weightController.clear();
-      _setsController.clear();
+      setState(() {
+        _weight = _weightStep;
+        _sets = _minSets;
+      });
+      // _weightPickerController.jumpToItem(0);
+      // _setsPickerController.jumpToItem(0);
       for (final controller in _repsControllers) {
         controller.clear();
       }
@@ -110,10 +118,26 @@ class _LogWeightPageState extends State<LogWeightPage> {
   }
 
   void _prefillFromLog(WeightLog log) {
-    _weightController.text = log.weight.toString();
-    _setsController.text = log.sets.toString();
+    final snappedWeight = (log.weight / _weightStep).round() * _weightStep;
+    final clampedWeight = snappedWeight
+        .clamp(_weightStep, _maxWeight)
+        .toDouble();
+    final pickerIndex = ((clampedWeight - _weightStep) / _weightStep).round();
+    final clampedSets = log.sets.clamp(_minSets, _maxSets);
+    final setPickerIndex = clampedSets - _minSets;
 
-    _ensureRepControllers(log.sets);
+    _weight = clampedWeight;
+    _sets = clampedSets;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _weightPickerController.jumpToItem(pickerIndex);
+      _setsPickerController.jumpToItem(setPickerIndex);
+    });
+
+    _ensureRepControllers(clampedSets);
 
     for (int i = 0; i < log.reps.length; i++) {
       _repsControllers[i].text = log.reps[i].toString();
@@ -296,7 +320,7 @@ class _LogWeightPageState extends State<LogWeightPage> {
         (e) => e.id == widget.exerciseId,
         orElse: () => Exercise(id: widget.exerciseId, name: 'Log Workout'),
       );
-      exerciseName = currentExercise.name;
+      exerciseName = currentExercise!.name;
     }
 
     return Scaffold(
@@ -326,38 +350,141 @@ class _LogWeightPageState extends State<LogWeightPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
-                          child: TextField(
-                            controller: _weightController,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            decoration: InputDecoration(
-                              labelText: 'Weight (kg)',
-                              filled: true,
-                              fillColor: colorScheme.surfaceContainerHighest,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Weight (kg)',
+                                style: textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 8),
+                              Container(
+                                width: double.infinity,
+                                height: 180,
+                                padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      _weight.toStringAsFixed(2),
+                                      textAlign: TextAlign.center,
+                                      style: textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Expanded(
+                                      child: CupertinoPicker(
+                                        scrollController:
+                                            _weightPickerController,
+                                        itemExtent: 32,
+                                        useMagnifier: true,
+                                        magnification: 1.08,
+                                        selectionOverlay:
+                                            const CupertinoPickerDefaultSelectionOverlay(),
+                                        onSelectedItemChanged: (index) {
+                                          HapticFeedback.selectionClick();
+                                          setState(() {
+                                            _weight =
+                                                _weightStep +
+                                                (index * _weightStep);
+                                          });
+                                        },
+                                        children: List.generate(
+                                          _weightItemCount,
+                                          (index) {
+                                            final value =
+                                                _weightStep +
+                                                (index * _weightStep);
+                                            return Center(
+                                              child: Text(
+                                                value.toStringAsFixed(2),
+                                                style: textTheme.bodyLarge,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: TextField(
-                            controller: _setsController,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: 'Sets',
-                              filled: true,
-                              fillColor: colorScheme.surfaceContainerHighest,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Sets',
+                                style: textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 8),
+                              Container(
+                                width: double.infinity,
+                                height: 180,
+                                padding: const EdgeInsets.fromLTRB(8, 8, 8, 6),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '$_sets',
+                                      textAlign: TextAlign.center,
+                                      style: textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Expanded(
+                                      child: CupertinoPicker(
+                                        scrollController: _setsPickerController,
+                                        itemExtent: 32,
+                                        useMagnifier: true,
+                                        magnification: 1.08,
+                                        selectionOverlay:
+                                            const CupertinoPickerDefaultSelectionOverlay(),
+                                        onSelectedItemChanged: (index) {
+                                          HapticFeedback.selectionClick();
+                                          setState(() {
+                                            _sets = _minSets + index;
+                                            _ensureRepControllers(_sets);
+                                          });
+                                        },
+                                        children: List.generate(_setItemCount, (
+                                          index,
+                                        ) {
+                                          final value = _minSets + index;
+                                          return Center(
+                                            child: Text(
+                                              '$value',
+                                              style: textTheme.bodyLarge,
+                                            ),
+                                          );
+                                        }),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -373,18 +500,46 @@ class _LogWeightPageState extends State<LogWeightPage> {
                     ...List.generate(_repsControllers.length, (index) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
-                        child: TextField(
-                          controller: _repsControllers[index],
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: 'Set ${index + 1} reps',
-                            filled: true,
-                            fillColor: colorScheme.surfaceContainerHighest,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: BorderSide.none,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _repsControllers[index],
+                                readOnly: true,
+                                showCursor: false,
+                                enableInteractiveSelection: false,
+                                textAlign: TextAlign.center,
+                                decoration: InputDecoration(
+                                  labelText: 'Set ${index + 1} reps',
+                                  filled: true,
+                                  fillColor:
+                                      colorScheme.surfaceContainerHighest,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Column(
+                              children: [
+                                IconButton.filledTonal(
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () => _changeRepValue(index, 1),
+                                  icon: const Icon(Icons.add),
+                                  tooltip: 'Increase reps',
+                                ),
+                                const SizedBox(height: 6),
+                                IconButton.filledTonal(
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () => _changeRepValue(index, -1),
+                                  icon: const Icon(Icons.remove),
+                                  tooltip: 'Decrease reps',
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       );
                     }),
@@ -571,10 +726,12 @@ class _EditLogDialogState extends State<_EditLogDialog> {
       text: widget.log.weight.toString(),
     );
     _setsController = TextEditingController(text: widget.log.sets.toString());
-    _repsControllers = List.generate(
-      widget.log.reps.length,
-      (index) => TextEditingController(text: widget.log.reps[index].toString()),
-    );
+    _repsControllers = List.generate(widget.log.sets, (index) {
+      final repValue = index < widget.log.reps.length
+          ? widget.log.reps[index]
+          : 1;
+      return TextEditingController(text: repValue.toString());
+    });
     _setsController.addListener(_syncRepsFields);
   }
 
@@ -599,12 +756,25 @@ class _EditLogDialogState extends State<_EditLogDialog> {
 
     setState(() {
       while (_repsControllers.length < targetSets) {
-        _repsControllers.add(TextEditingController());
+        final nextIndex = _repsControllers.length;
+        final repValue = nextIndex < widget.log.reps.length
+            ? widget.log.reps[nextIndex]
+            : 1;
+        _repsControllers.add(TextEditingController(text: repValue.toString()));
       }
       while (_repsControllers.length > targetSets) {
         _repsControllers.removeLast().dispose();
       }
     });
+  }
+
+  void _changeRepValue(int index, int delta) {
+    final currentValue = int.tryParse(_repsControllers[index].text) ?? 1;
+    final updatedValue = (currentValue + delta).clamp(1, 999);
+    setState(() {
+      _repsControllers[index].text = updatedValue.toString();
+    });
+    HapticFeedback.selectionClick();
   }
 
   void _submit() {
@@ -710,18 +880,45 @@ class _EditLogDialogState extends State<_EditLogDialog> {
               ...List.generate(_repsControllers.length, (index) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: TextField(
-                    controller: _repsControllers[index],
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Set ${index + 1} reps',
-                      filled: true,
-                      fillColor: colorScheme.surfaceContainerHighest,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _repsControllers[index],
+                          readOnly: true,
+                          showCursor: false,
+                          enableInteractiveSelection: false,
+                          textAlign: TextAlign.center,
+                          decoration: InputDecoration(
+                            labelText: 'Set ${index + 1} reps',
+                            filled: true,
+                            fillColor: colorScheme.surfaceContainerHighest,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Column(
+                        children: [
+                          IconButton.filledTonal(
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () => _changeRepValue(index, 1),
+                            icon: const Icon(Icons.add),
+                            tooltip: 'Increase reps',
+                          ),
+                          const SizedBox(height: 6),
+                          IconButton.filledTonal(
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () => _changeRepValue(index, -1),
+                            icon: const Icon(Icons.remove),
+                            tooltip: 'Decrease reps',
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 );
               }),

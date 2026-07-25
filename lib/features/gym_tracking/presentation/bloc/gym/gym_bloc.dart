@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:manysallesapp/core/usecases/usecase.dart';
-import 'package:manysallesapp/features/gym_tracking/domain/entities/gym.dart';
-import 'package:manysallesapp/features/gym_tracking/domain/usecases/gym_usecases.dart';
+import 'package:manysallesappCrimson/core/usecases/usecase.dart';
+import 'package:manysallesappCrimson/features/gym_tracking/domain/entities/gym.dart';
+import 'package:manysallesappCrimson/features/gym_tracking/domain/usecases/gym_usecases.dart';
 import 'package:uuid/uuid.dart';
 
 import 'gym_event.dart';

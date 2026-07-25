@@ -10,6 +10,7 @@ import '../../domain/entities/exercise.dart';
 import '../../domain/entities/exercise_session.dart';
 import '../../domain/entities/weight_log.dart';
 import '../../domain/repositories/gym_tracking_repository.dart';
+import '../../domain/entities/daily_aggregate.dart';
 import '../datasources/gym_tracking_local_data_source.dart';
 
 class GymTrackingRepositoryImpl implements GymTrackingRepository {
@@ -199,10 +200,28 @@ class GymTrackingRepositoryImpl implements GymTrackingRepository {
   }
 
   @override
-  Future<Either<Failure, void>> exportData() async {
+  Future<Either<Failure, String>> exportData() async {
     try {
-      await localDataSource.exportData();
-      return const Right(null);
+      final exportedPath = await localDataSource.exportData();
+      return Right(exportedPath);
+    } on CacheException catch (e) {
+      return Left(CacheFailure(e.message));
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<DailyAggregate>>> getDailyAggregatedLogs(
+    String gymId,
+    String exerciseId,
+  ) async {
+    try {
+      final aggs = await localDataSource.getDailyAggregatedLogs(
+        gymId,
+        exerciseId,
+      );
+      return Right(aggs);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
     }

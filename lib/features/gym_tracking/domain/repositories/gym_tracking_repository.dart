@@ -4,6 +4,7 @@ import '../entities/gym.dart';
 import '../entities/exercise.dart';
 import '../entities/exercise_session.dart';
 import '../entities/weight_log.dart';
+import '../entities/daily_aggregate.dart';
 
 abstract class GymTrackingRepository {
   Future<Either<Failure, List<Gym>>> getGyms();
@@ -31,6 +32,10 @@ abstract class GymTrackingRepository {
   Future<Either<Failure, void>> deleteWeightLog(String logId);
 
   Future<Either<Failure, void>> updateWeightForEveryGym(WeightLog baseLog);
-  Future<Either<Failure, void>> exportData();
+  Future<Either<Failure, String>> exportData();
   Future<Either<Failure, void>> importData(String filePath);
+  Future<Either<Failure, List<DailyAggregate>>> getDailyAggregatedLogs(
+    String gymId,
+    String exerciseId,
+  );
 }
